@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Explorer — Identity Card Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --bg: #080c10;
+  --surface: #0d1117;
+  --surface2: #141b24;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8edf2;
+  --text2: #7a8999;
+  --text3: #4a5568;
+  --green: #00e5a0;
+  --green-dim: rgba(0,229,160,0.12);
+  --green-glow: rgba(0,229,160,0.25);
+  --orange: #ff6b2b;
+  --orange-dim: rgba(255,107,43,0.12);
+  --blue: #3b82f6;
+  --card-bg: #0d1520;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Instrument Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- GRID BG ---- */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ---- NAV ---- */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 60px;
+  background: rgba(8,12,16,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: 18px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.nav-logo span { color: var(--green); }
+.nav-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  border: 1px solid var(--border2);
+  padding: 3px 10px; border-radius: 20px;
+  letter-spacing: .05em;
+}
+.nav-cta {
+  background: var(--green); color: #000;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 12px;
+  padding: 7px 16px; border-radius: 6px;
+  border: none; cursor: pointer;
+  letter-spacing: .03em;
+  transition: opacity .15s, transform .1s;
+  text-decoration: none;
+}
+.nav-cta:hover { opacity: .85; }
+.nav-cta:active { transform: scale(.97); }
+
+/* ---- HERO ---- */
+.hero {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 80px 1.5rem 4rem;
+  text-align: center;
+}
+
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--green-dim);
+  border: 1px solid rgba(0,229,160,0.25);
+  border-radius: 20px; padding: 5px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--green);
+  letter-spacing: .05em; margin-bottom: 2rem;
+  animation: fadeUp .6s ease both;
+}
+.hero-pill::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(38px, 8vw, 72px);
+  line-height: 1;
+  letter-spacing: -2px;
+  margin-bottom: 1.25rem;
+  animation: fadeUp .6s .1s ease both;
+}
+.hero-h1 em { color: var(--green); font-style: normal; }
+.hero-h1 .line2 { color: var(--text2); }
+
+.hero-sub {
+  font-size: 16px; color: var(--text2);
+  max-width: 440px; line-height: 1.7;
+  margin: 0 auto 2.5rem;
+  animation: fadeUp .6s .2s ease both;
+}
+
+.hero-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green); color: #000;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 15px;
+  padding: 14px 28px; border-radius: 8px;
+  border: none; cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  animation: fadeUp .6s .3s ease both;
+  text-decoration: none;
+}
+.hero-btn:hover { opacity: .85; transform: translateY(-1px); }
+.hero-btn:active { transform: scale(.97); }
+.hero-btn svg { width: 16px; height: 16px; }
+
+/* floating stats */
+.hero-stats {
+  display: flex; gap: 2rem; margin-top: 3.5rem;
+  animation: fadeUp .6s .4s ease both;
+}
+.stat { text-align: center; }
+.stat-n {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: 28px;
+  color: var(--text); line-height: 1;
+}
+.stat-n span { color: var(--green); }
+.stat-l {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-top: 4px;
+}
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* ---- SECTION DIVIDER ---- */
+.section-divider {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 1.5rem; margin-bottom: 1.5rem;
+}
+.section-divider::before, .section-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: var(--border);
+}
+.section-divider span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+/* ---- GENERATOR SECTION ---- */
+.generator {
+  position: relative; z-index: 1;
+  padding: 0 1.5rem 6rem;
+  max-width: 900px; margin: 0 auto;
+}
+
+.gen-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media(max-width:700px){ .gen-grid{grid-template-columns:1fr} }
+
+/* form panel */
+.form-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+.panel-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 18px;
+  margin-bottom: 4px;
+}
+.panel-sub {
+  font-size: 13px; color: var(--text2);
+  margin-bottom: 1.5rem; line-height: 1.6;
+}
+
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .09em;
+  margin-bottom: 6px;
+}
+.field input[type=text] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 14px; color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field input[type=text]:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-dim);
+}
+.field input[type=text]::placeholder { color: var(--text3); }
+
+/* photo upload */
+.photo-zone {
+  border: 1px dashed var(--border2);
+  border-radius: 8px; padding: 16px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: var(--surface2); position: relative;
+  margin-bottom: 1rem;
+}
+.photo-zone:hover { border-color: var(--green); background: var(--green-dim); }
+.photo-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-zone-inner { pointer-events: none; }
+.photo-prev { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; border: 1.5px solid var(--green); margin: 0 auto 8px; display: none; }
+.photo-prev.on { display: block; }
+.photo-icon-wrap { font-size: 24px; margin-bottom: 6px; }
+.photo-zone-lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; line-height: 1.7; }
+.photo-zone-lbl strong { display: block; font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+
+.gen-btn {
+  width: 100%; padding: 13px;
+  background: var(--green); color: #000;
+  border: none; border-radius: 8px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 16px;
+  letter-spacing: .02em; cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.gen-btn:hover { opacity: .85; }
+.gen-btn:active { transform: scale(.98); }
+.gen-btn:disabled { background: var(--surface2); color: var(--text3); cursor: not-allowed; }
+
+.err {
+  background: rgba(255,100,60,.1);
+  border: 1px solid rgba(255,100,60,.25);
+  border-radius: 6px; padding: 10px 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: #ff6440;
+  margin-top: 10px; display: none; line-height: 1.6;
+}
+.err.on { display: block; }
+
+/* preview panel */
+.preview-panel {
+  position: sticky; top: 80px;
+}
+
+.preview-empty {
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: 16px;
+  min-height: 400px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 2rem;
+  text-align: center;
+}
+.preview-empty-icon { font-size: 36px; opacity: .3; }
+.preview-empty-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em;
+  line-height: 1.7;
+}
+
+/* loading */
+.loading { display: none; }
+.loading.on { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 16px; }
+.loading-ring {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+
+/* ---- THE CARD ---- */
+.card-output { display: none; }
+.card-output.on { display: block; animation: fadeUp .4s ease; }
+
+.the-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(0,229,160,0.2);
+  border-radius: 14px; overflow: hidden;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+/* green top bar */
+.card-topbar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--green), #00b8d9, var(--green));
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+
+.card-head {
+  background: linear-gradient(135deg, #0a1628 0%, #0d1f35 100%);
+  padding: 18px 20px 16px;
+  position: relative;
+}
+.card-head-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.card-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; text-transform: uppercase; letter-spacing: .12em;
+  color: rgba(0,229,160,.5);
+  border: 1px solid rgba(0,229,160,.2);
+  padding: 3px 9px; border-radius: 3px;
+}
+.card-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: rgba(255,255,255,.2);
+}
+.card-head-main { display: flex; gap: 14px; align-items: flex-end; }
+
+.card-photo {
+  width: 70px; height: 70px; border-radius: 8px;
+  object-fit: cover; display: block; flex-shrink: 0;
+  border: 1.5px solid rgba(0,229,160,.3);
+}
+.card-photo-placeholder {
+  width: 70px; height: 70px; border-radius: 8px; flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.card-photo-placeholder span { font-size: 22px; display: block; }
+.card-photo-placeholder p {
+  font-family: 'JetBrains Mono', monospace; font-size: 7px;
+  color: rgba(255,255,255,.2); text-transform: uppercase;
+  letter-spacing: .05em; margin-top: 4px; text-align: center; line-height: 1.4;
+}
+
+.card-name-block { flex: 1; min-width: 0; }
+.card-name {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 32px; letter-spacing: -1px; line-height: 1;
+  color: #fff; word-break: break-word;
+}
+.card-tagline {
+  font-family: 'JetBrains Mono', monospace; font-size: 8px;
+  color: var(--green); text-transform: uppercase;
+  letter-spacing: .1em; margin-top: 6px;
+}
+
+/* corner decoration */
+.card-corner {
+  position: absolute; right: 16px; bottom: 14px;
+  display: flex; gap: 3px; align-items: flex-end;
+}
+.card-corner span {
+  display: block; width: 5px; background: rgba(0,229,160,.15);
+  border-radius: 2px 2px 0 0;
+}
+
+.card-body { padding: 16px 20px; background: var(--card-bg); }
+.card-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-bottom: 11px;
+}
+.card-icon {
+  width: 28px; height: 28px;
+  background: rgba(0,229,160,.08);
+  border: 1px solid rgba(0,229,160,.15);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.card-lbl {
+  font-family: 'JetBrains Mono', monospace; font-size: 8px;
+  color: var(--text3); text-transform: uppercase;
+  letter-spacing: .1em; margin-bottom: 2px;
+}
+.card-val {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  line-height: 1.45;
+}
+.card-sep {
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(0,229,160,.1) 0, rgba(0,229,160,.1) 4px, transparent 4px, transparent 8px);
+  margin: 11px 0;
+}
+
+.card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px 14px;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+.card-foot-txt {
+  font-family: 'JetBrains Mono', monospace; font-size: 8px;
+  color: var(--text3); line-height: 1.8;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.card-foot-txt strong { display: block; font-size: 10px; color: var(--text2); }
+.card-stamp {
+  width: 48px; height: 48px;
+  border: 2px solid rgba(0,229,160,.4); border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transform: rotate(12deg);
+}
+.card-stamp p {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 7px; color: var(--green);
+  letter-spacing: .05em; text-align: center; line-height: 1.3;
+}
+
+/* action buttons */
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.act-btn {
+  flex: 1; min-width: 100px; padding: 11px 10px;
+  border-radius: 8px; font-family: 'Syne', sans-serif;
+  font-weight: 600; font-size: 13px;
+  cursor: pointer; border: 1px solid;
+  transition: all .15s; display: flex;
+  align-items: center; justify-content: center; gap: 6px;
+}
+.act-btn.dl {
+  background: var(--green); color: #000;
+  border-color: var(--green);
+}
+.act-btn.dl:hover { opacity: .85; }
+.act-btn.dl:disabled { background: var(--surface2); color: var(--text3); border-color: var(--border); cursor: not-allowed; }
+.act-btn.share-btn {
+  background: var(--orange-dim); color: var(--orange);
+  border-color: rgba(255,107,43,.2);
+}
+.act-btn.share-btn:hover { background: rgba(255,107,43,.2); }
+.act-btn.new-btn {
+  background: var(--surface2); color: var(--text2);
+  border-color: var(--border2);
+}
+.act-btn.new-btn:hover { background: var(--border2); color: var(--text); }
+
+.share-toast {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 14px 16px;
+  margin-top: 12px; display: none;
+}
+.share-toast.on { display: block; animation: fadeUp .3s ease; }
+.share-toast-lbl {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--green); text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+.share-caption {
+  font-size: 13px; color: var(--text2); line-height: 1.7;
+  font-style: italic;
+}
+
+/* ---- FOOTER ---- */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 2rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-logo {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px;
+}
+.footer-logo span { color: var(--green); }
+.footer-txt {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .07em;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">AI<span>Explorer</span></div>
+  <div class="nav-tag">v1.0 · workshop 2025</div>
+  <a class="nav-cta" href="#generator">Get my card →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-pill">AI Workshop 2025 · India</div>
+  <h1 class="hero-h1">
+    Know your<br>
+    <em>AI identity.</em><br>
+    <span class="line2">Own your future.</span>
+  </h1>
+  <p class="hero-sub">
+    You just learned AI. Now let AI tell you who you are —
+    your superpower, your twin, your 2035 prediction.
+    Generate your card. Download it. Post it.
+  </p>
+  <a class="hero-btn" href="#generator">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1v10M3 7l5 5 5-5"/><path d="M1 13h14"/></svg>
+    Generate my card
+  </a>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-n">5<span>+</span></div>
+      <div class="stat-l">AI tools taught</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">10<span>s</span></div>
+      <div class="stat-l">to your card</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">∞</div>
+      <div class="stat-l">possibilities</div>
+    </div>
+  </div>
+</section>
+
+<!-- GENERATOR -->
+<section class="generator" id="generator">
+  <div class="section-divider"><span>generate your card</span></div>
+
+  <div class="gen-grid">
+
+    <!-- LEFT: FORM -->
+    <div class="form-panel">
+      <div class="panel-title">Fill in your details</div>
+      <div class="panel-sub">3 fields, 10 seconds, one card you'll actually want to post.</div>
+
+      <div class="field">
+        <label>Your photo (optional)</label>
+        <div class="photo-zone" id="photo-zone">
+          <input type="file" id="photo-input" accept="image/*" onchange="handlePhoto(event)">
+          <div class="photo-zone-inner">
+            <img id="photo-prev" class="photo-prev" src="" alt="">
+            <div id="photo-ph">
+              <div class="photo-icon-wrap">📷</div>
+              <div class="photo-zone-lbl"><strong>Tap to add your photo</strong>selfie · school pic · anything</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Your first name</label>
+        <input type="text" id="f-name" placeholder="e.g. Arjun" maxlength="18">
+      </div>
+      <div class="field">
+        <label>One thing you love</label>
+        <input type="text" id="f-hobby" placeholder="e.g. cricket, gaming, dancing" maxlength="40">
+      </div>
+      <div class="field">
+        <label>Your dream / career goal</label>
+        <input type="text" id="f-dream" placeholder="e.g. start my own company" maxlength="50">
+      </div>
+
+      <button class="gen-btn" id="gen-btn" onclick="generate()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8A5 5 0 1 1 3 8a5 5 0 0 1 10 0z"/><path d="M8 5v3l2 2"/></svg>
+        Generate my card
+      </button>
+      <div class="err" id="err-box"></div>
+    </div>
+
+    <!-- RIGHT: PREVIEW -->
+    <div class="preview-panel">
+
+      <!-- empty state -->
+      <div class="preview-empty" id="preview-empty">
+        <div class="preview-empty-icon">🪪</div>
+        <div class="preview-empty-txt">Your card will<br>appear here</div>
+      </div>
+
+      <!-- loading -->
+      <div class="loading" id="loading">
+        <div class="loading-ring"></div>
+        <div class="loading-txt">AI is thinking about you...</div>
+      </div>
+
+      <!-- card output -->
+      <div class="card-output" id="card-output">
+        <div class="the-card" id="the-card">
+          <div class="card-topbar"></div>
+          <div class="card-head">
+            <div class="card-head-top">
+              <span class="card-badge">AI Identity Card</span>
+              <span class="card-id" id="c-id">#AI-0000</span>
+            </div>
+            <div class="card-head-main">
+              <div id="card-photo-wrap">
+                <img id="card-photo" class="card-photo" src="" alt="" style="display:none">
+                <div class="card-photo-placeholder" id="card-photo-ph">
+                  <span>👤</span><p>no<br>photo</p>
+                </div>
+              </div>
+              <div class="card-name-block">
+                <div class="card-name" id="c-name">NAME</div>
+                <div class="card-tagline" id="c-tagline">tagline</div>
+              </div>
+            </div>
+            <div class="card-corner">
+              <span style="height:14px"></span>
+              <span style="height:24px"></span>
+              <span style="height:10px"></span>
+              <span style="height:20px"></span>
+              <span style="height:8px"></span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="card-row">
+              <div class="card-icon">⚡</div>
+              <div><div class="card-lbl">AI Superpower</div><div class="card-val" id="c-power">—</div></div>
+            </div>
+            <div class="card-row">
+              <div class="card-icon">🤝</div>
+              <div><div class="card-lbl">Famous AI twin</div><div class="card-val" id="c-twin">—</div></div>
+            </div>
+            <div class="card-row">
+              <div class="card-icon">🔮</div>
+              <div><div class="card-lbl">2035 prediction</div><div class="card-val" id="c-pred">—</div></div>
+            </div>
+            <div class="card-sep"></div>
+            <div class="card-row">
+              <div class="card-icon">🔥</div>
+              <div><div class="card-lbl">Savage AI advice</div><div class="card-val" id="c-advice">—</div></div>
+            </div>
+          </div>
+
+          <div class="card-foot">
+            <div class="card-foot-txt">
+              <strong>AI Explorer · 2025</strong>
+              issued to a future ai native<br>
+              valid: forever
+            </div>
+            <div class="card-stamp"><p>CERTIFIED<br>AI<br>EXPLORER</p></div>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="act-btn dl" id="dl-btn" onclick="downloadCard()">⬇ Download</button>
+          <button class="act-btn share-btn" onclick="showShare()">↗ Share</button>
+          <button class="act-btn new-btn" onclick="resetForm()">+ New card</button>
+        </div>
+
+        <div class="share-toast" id="share-toast">
+          <div class="share-toast-lbl">Caption to copy →</div>
+          <div class="share-caption">"Just got my AI Identity Card at the AI Workshop 2025! 🤖✨ #AIExplorer #AIWorkshop"</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">AI<span>Explorer</span></div>
+  <div class="footer-txt">AI Workshop India · 2025 · made with Claude</div>
+</footer>
+
+<script>
+var photoDataUrl = null;
+
+function handlePhoto(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    photoDataUrl = ev.target.result;
+    var prev = document.getElementById('photo-prev');
+    prev.src = photoDataUrl;
+    prev.classList.add('on');
+    document.getElementById('photo-ph').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+var superpowers = { default: ["Turns half-baked ideas into fully-baked plans at 3am","Spots patterns in chaos that everyone else scrolls past","Explains complex stuff so simply it feels like magic","Makes connections between things nobody thought to connect","Learns anything in half the time by asking the right questions"] };
+var twins = [["Elon Musk","always building something nobody believed in yet"],["Sundar Pichai","quiet genius who lets the work speak for itself"],["Malala Yousafzai","turns passion into a movement that changes things"],["Virat Kohli","never-settle mindset — every day is a new personal best"],["Priyanka Chopra","refuses to be put in a box — does everything, owns it"],["APJ Abdul Kalam","dreamer with a calculator — vision backed by hard work"],["Shah Rukh Khan","storyteller at heart, makes everyone feel seen"],["Ratan Tata","builds things that outlast themselves — legacy over hype"],["Falguni Nayar","started late, scaled fast — timing is never the excuse"],["Rohit Sharma","laid-back outside, ruthless performer when it counts"]];
+var predictions = ["Running a company with more AI employees than human ones","Teaching others skills that haven't been invented yet","Has a Wikipedia page and pretends to be embarrassed about it","Called a visionary on a podcast they used to listen to","Retired at 32 and still can't stop building things","Their side project became their main project and then their legacy","Speaking at the same stage they once sat in the audience of","Solving a problem that doesn't exist yet but will by 2030","Running three things at once and making it look effortless","The person younger students ask 'how did you do it?'"];
+var advicePool = ["Stop waiting for permission — nobody's coming to give it to you","Your network is not who you know, it's who knows your work","Done is better than perfect — launch the thing already","The skill you think is 'just a hobby' is someone's dream job skill","Google 'how to' before you Google 'who can do this for me'","Comparison is just envy in a blazer — stay in your own lane","Every expert was once a beginner who refused to quit at week 3","The embarrassing first attempt is the price of the good third one","Talk to one person in your dream field — today, not someday","Your phone is a studio, a classroom, and a launchpad — use all three"];
+var taglines = ["future ceo in disguise","quietly building something big","too creative to be contained","nap now, disrupt later","error 404: limits not found","still loading... great things take time","main character energy, always","currently beta testing my potential","powered by chai and big dreams","glitch in the system — intentionally"];
+
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+function generate() {
+  var name = document.getElementById('f-name').value.trim();
+  var hobby = document.getElementById('f-hobby').value.trim();
+  var dream = document.getElementById('f-dream').value.trim();
+  if (!name || !hobby || !dream) { showErr('Fill in all 3 fields!'); return; }
+  document.getElementById('err-box').classList.remove('on');
+  document.getElementById('preview-empty').style.display = 'none';
+  document.getElementById('loading').classList.add('on');
+  document.getElementById('card-output').classList.remove('on');
+  document.getElementById('share-toast').classList.remove('on');
+
+  setTimeout(function () {
+    var twin = pick(twins);
+    var cp = document.getElementById('card-photo');
+    var cph = document.getElementById('card-photo-ph');
+    if (photoDataUrl) { cp.src = photoDataUrl; cp.style.display = 'block'; cph.style.display = 'none'; }
+    else { cp.style.display = 'none'; cph.style.display = 'flex'; }
+
+    document.getElementById('c-id').textContent = '#AI-' + (1000 + Math.floor(Math.random() * 9000));
+    document.getElementById('c-name').textContent = name.toUpperCase();
+    document.getElementById('c-tagline').textContent = pick(taglines);
+    document.getElementById('c-power').textContent = buildSuperpower(hobby);
+    document.getElementById('c-twin').textContent = twin[0] + ' — ' + twin[1];
+    document.getElementById('c-pred').textContent = buildPrediction(name, dream);
+    document.getElementById('c-advice').textContent = buildAdvice(dream);
+
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('card-output').classList.add('on');
+    document.getElementById('card-output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 1500);
+}
+
+function downloadCard() {
+  var btn = document.getElementById('dl-btn');
+  btn.disabled = true; btn.textContent = '⏳ Saving...';
+  html2canvas(document.getElementById('the-card'), {
+    scale: 2, useCORS: true, allowTaint: true,
+    backgroundColor: '#0d1520', logging: false
+  }).then(function (canvas) {
+    var name = document.getElementById('c-name').textContent || 'student';
+    var link = document.createElement('a');
+    link.download = 'AI-Card-' + name + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.disabled = false; btn.textContent = '⬇ Download';
+  }).catch(function () {
+    btn.disabled = false; btn.textContent = '⬇ Download';
+    alert('Take a screenshot instead!');
+  });
+}
+
+function showShare() {
+  var t = document.getElementById('share-toast');
+  t.classList.add('on');
+  t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function resetForm() {
+  document.getElementById('card-output').classList.remove('on');
+  document.getElementById('share-toast').classList.remove('on');
+  document.getElementById('preview-empty').style.display = '';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-hobby').value = '';
+  document.getElementById('f-dream').value = '';
+  photoDataUrl = null;
+  document.getElementById('photo-prev').classList.remove('on');
+  document.getElementById('photo-ph').style.display = 'block';
+  document.getElementById('photo-input').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function buildSuperpower(h) {
+  h = h.toLowerCase();
+  if (h.includes('cricket') || h.includes('football') || h.includes('sport') || h.includes('badminton')) return 'Turns match pressure into fuel — thrives hardest when stakes are highest';
+  if (h.includes('gam')) return 'Solves complex systems under pressure — strategy is second nature';
+  if (h.includes('music') || h.includes('sing') || h.includes('guitar') || h.includes('drum')) return 'Reads a room and sets the tone — every team needs this energy';
+  if (h.includes('draw') || h.includes('art') || h.includes('design') || h.includes('sketch')) return 'Sees the final picture before anyone else has opened the paint';
+  if (h.includes('cook') || h.includes('bak') || h.includes('food')) return 'Mixes exactly the right ingredients to make something unforgettable';
+  if (h.includes('read') || h.includes('book') || h.includes('writ')) return 'Absorbs knowledge fast and translates it into ideas others can act on';
+  if (h.includes('danc')) return 'Moves to their own rhythm — and somehow makes everyone follow along';
+  if (h.includes('code') || h.includes('program') || h.includes('tech')) return 'Speaks fluent human AND fluent machine — rarest combo on the planet';
+  if (h.includes('photo') || h.includes('travel')) return 'Notices what everyone else walks past — stories hiding in every corner';
+  return pick(superpowers.default);
+}
+function buildAdvice(d) {
+  d = d.toLowerCase();
+  if (d.includes('business') || d.includes('startup') || d.includes('company') || d.includes('entrepreneur')) return 'Start selling before the product is perfect — customers teach better than ideas';
+  if (d.includes('doctor') || d.includes('medic') || d.includes('health')) return 'Empathy is the skill no textbook teaches — practice it daily, not just in hospitals';
+  if (d.includes('engineer') || d.includes('tech') || d.includes('code') || d.includes('software')) return 'Build something real this weekend — portfolio beats grades every single time';
+  if (d.includes('film') || d.includes('actor') || d.includes('direct') || d.includes('movie')) return 'Make a short film with your phone today — waiting for a camera is just waiting';
+  if (d.includes('artist') || d.includes('design') || d.includes('creat')) return 'Post the work before it feels ready — feedback is the only real shortcut';
+  if (d.includes('teach') || d.includes('educat')) return 'Teach what you are learning right now — fastest way to actually master it';
+  if (d.includes('sport') || d.includes('player') || d.includes('athlet')) return 'Film yourself once a week — your own eyes miss what the camera never does';
+  return pick(advicePool);
+}
+function buildPrediction(name, d) {
+  d = d.toLowerCase();
+  var n = name.charAt(0).toUpperCase() + name.slice(1);
+  if (d.includes('business') || d.includes('startup') || d.includes('company')) return n + "'s company is in Forbes 30 Under 30 — and they almost didn't apply";
+  if (d.includes('doctor') || d.includes('medic')) return 'Running a clinic that every patient wishes had existed twenty years earlier';
+  if (d.includes('engineer') || d.includes('software') || d.includes('code')) return 'Their open-source project has 50k stars — maintained on weekends, just for fun';
+  if (d.includes('film') || d.includes('actor') || d.includes('direct')) return 'Accepting an award and thanking the AI workshop they attended in 2025';
+  if (d.includes('artist') || d.includes('design')) return 'Their work is on a billboard in their hometown and they cry a little every time';
+  if (d.includes('teach') || d.includes('educat')) return 'Teaching a generation of students who go on to change the world themselves';
+  return pick(predictions);
+}
+function showErr(msg) { var e = document.getElementById('err-box'); e.textContent = msg; e.classList.add('on'); }
+document.addEventListener('keydown', function (e) { if (e.key === 'Enter') generate(); });
+</script>
+</body>
+</html>
